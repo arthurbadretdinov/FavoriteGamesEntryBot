@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-async def main():
+async def main() -> None:
     token = os.getenv("BOT_TOKEN")
     
-    if not token:
+    if token is None:
         raise ValueError("BOT_TOKEN is not set in .env")
     
     bot = Bot(token=token)
