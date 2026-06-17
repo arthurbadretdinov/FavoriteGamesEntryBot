@@ -1,10 +1,13 @@
 from typing import Any
 
-from aiogram import Router
-from aiogram.types import Message
+from aiogram import F, Router
+from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
+from aiogram.filters import StateFilter
+
 
 from app.states.entry_form import EntryForm
+from app.keyboards.entry import microphone_kb
 
 router = Router()
 
@@ -54,7 +57,22 @@ async def process_age(message: Message, state: FSMContext) -> None:
 
     await state.update_data(age=age)
     await state.set_state(EntryForm.microphone)
-    await message.answer("Есть ли у тебя микрофон? (да/нет)")
+    await message.answer("Есть ли у тебя микрофон? (да/нет)", reply_markup=microphone_kb)
+
+
+@router.callback_query(
+    F.data.in_({"mic_yes", "mic_no"}), StateFilter(EntryForm.microphone)
+)
+async def process_microphone_callback(query: CallbackQuery, state: FSMContext) -> None:
+    value = "Есть" if query.data == "mic_yes" else "Нет"
+
+    await state.update_data(microphone=value)
+    await state.set_state(EntryForm.games)
+
+    if query.message:
+        await query.message.answer("Какие игры тебе интересны? (например: CS2, Dota 2)")
+
+    await query.answer()
 
 
 @router.message(EntryForm.microphone)
