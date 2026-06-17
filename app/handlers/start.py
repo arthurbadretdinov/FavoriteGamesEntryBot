@@ -10,6 +10,8 @@ router = Router()
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext) -> None:
+    await state.clear()
+
     await state.set_state(EntryForm.nickname)
     await message.answer(
         "Привет!\n"

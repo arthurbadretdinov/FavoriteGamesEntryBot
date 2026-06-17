@@ -1,3 +1,5 @@
+from typing import Any
+
 from aiogram import Router
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
@@ -8,33 +10,86 @@ router = Router()
 
 
 @router.message(EntryForm.nickname)
-async def process_nickname(message: Message, state: FSMContext):
-    await state.update_data(nickname=message.text)
+async def process_nickname(message: Message, state: FSMContext) -> None:
+    text: str = (message.text or "").strip()
+
+    if not text:
+        await message.answer("Поле не может быть пустым")
+        return
+
+    if len(text) < 3:
+        await message.answer("Никнейм должен быть минимум 3 символа")
+        return
+
+    if len(text) > 20:
+        await message.answer("Никнейм не может быть длиннее 20 символов")
+        return
+
+    allowed: str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
+
+    if not all(char in allowed for char in text):
+        await message.answer(
+            "Никнейм может содержать только латинские буквы, цифры, _ и ."
+        )
+        return
+
+    await state.update_data(nickname=text)
     await state.set_state(EntryForm.age)
     await message.answer("Сколько тебе лет?")
 
 
 @router.message(EntryForm.age)
-async def process_age(message: Message, state: FSMContext):
-    await state.update_data(age=message.text)
+async def process_age(message: Message, state: FSMContext) -> None:
+    text: str = (message.text or "").strip()
+
+    if not text.isdigit():
+        await message.answer("Введите число (например: 18)")
+        return
+
+    age: int = int(text)
+
+    if age < 1 or age > 120:
+        await message.answer("Возраст должен быть от 1 до 120")
+        return
+
+    await state.update_data(age=age)
     await state.set_state(EntryForm.microphone)
     await message.answer("Есть ли у тебя микрофон? (да/нет)")
 
 
 @router.message(EntryForm.microphone)
-async def process_microphone(message: Message, state: FSMContext):
-    await state.update_data(microphone=message.text)
+async def process_microphone(message: Message, state: FSMContext) -> None:
+    text: str = (message.text or "").strip()
+
+    await state.update_data(microphone=text)
     await state.set_state(EntryForm.games)
     await message.answer("Какие игры тебе интересны?")
 
 
 @router.message(EntryForm.games)
-async def process_games(message: Message, state: FSMContext):
+async def process_games(message: Message, state: FSMContext) -> None:
+    text: str = (message.text or "").strip()
 
-    await state.update_data(games=message.text)
-    data = await state.get_data()
+    if not text:
+        await message.answer("Напиши хотя бы одну игру (например: CS2, Dota 2)")
+        return
+
+    if len(text) > 200:
+        await message.answer(
+            "Напиши игры через запятую (например: CS2, Dota 2, Valorant)"
+        )
+        return
+
+    await state.update_data(games=text)
+
+    data: dict[str, Any] = await state.get_data()
+
     await message.answer(
-        f"Спасибо! Вот твоя анкета:\n\nНикнейм: {data['nickname']}\nВозраст: {data['age']}\nМикрофон: {data['microphone']}\nИнтересующие игры: {data['games']}"
+        "Спасибо! Вот твоя анкета:\n\n"
+        f"Никнейм: {data['nickname']}\n"
+        f"Возраст: {data['age']}\n"
+        f"Микрофон: {data['microphone']}\n"
+        f"Игры: {data['games']}"
     )
 
     await state.clear()
