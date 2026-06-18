@@ -1,11 +1,13 @@
 from typing import Any
 
-from aiogram import F, Router
+from aiogram import F, Router, Bot
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import StateFilter
 
 
+from app.config import ADMIN_CHAT_ID
+from app.keyboards.moderation import moderation_kb
 from app.states.entry_form import EntryForm
 from app.keyboards.entry import microphone_kb
 
@@ -57,14 +59,16 @@ async def process_age(message: Message, state: FSMContext) -> None:
 
     await state.update_data(age=age)
     await state.set_state(EntryForm.microphone)
-    await message.answer("Есть ли у тебя микрофон? (да/нет)", reply_markup=microphone_kb)
+    await message.answer(
+        "Есть ли у тебя микрофон? (да/нет)", reply_markup=microphone_kb()
+    )
 
 
 @router.callback_query(
     F.data.in_({"mic_yes", "mic_no"}), StateFilter(EntryForm.microphone)
 )
 async def process_microphone_callback(query: CallbackQuery, state: FSMContext) -> None:
-    value = "Есть" if query.data == "mic_yes" else "Нет"
+    value: str = "Есть" if query.data == "mic_yes" else "Нет"
 
     await state.update_data(microphone=value)
     await state.set_state(EntryForm.games)
@@ -85,7 +89,7 @@ async def process_microphone(message: Message, state: FSMContext) -> None:
 
 
 @router.message(EntryForm.games)
-async def process_games(message: Message, state: FSMContext) -> None:
+async def process_games(message: Message, state: FSMContext, bot: Bot) -> None:
     text: str = (message.text or "").strip()
 
     if not text:
@@ -102,12 +106,18 @@ async def process_games(message: Message, state: FSMContext) -> None:
 
     data: dict[str, Any] = await state.get_data()
 
-    await message.answer(
-        "Спасибо! Вот твоя анкета:\n\n"
-        f"Никнейм: {data['nickname']}\n"
+    text: str = (
+        "Новая анкета:\n\n"
+        f"Ник: {data['nickname']}\n"
         f"Возраст: {data['age']}\n"
         f"Микрофон: {data['microphone']}\n"
         f"Игры: {data['games']}"
+    )
+
+    await message.answer(text)
+
+    await bot.send_message(
+        chat_id=ADMIN_CHAT_ID, text=text, reply_markup=moderation_kb()
     )
 
     await state.clear()
