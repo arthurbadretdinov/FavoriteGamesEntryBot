@@ -1,21 +1,15 @@
 import asyncio
 import os
 from aiogram import Bot, Dispatcher
-from dotenv import load_dotenv
+
+from app.config import BOT_TOKEN
 
 from app.handlers.start import router as start_router
 from app.handlers.entry import router as entry_router
 
-load_dotenv()
-
 
 async def main() -> None:
-    token = os.getenv("BOT_TOKEN")
-
-    if token is None:
-        raise ValueError("BOT_TOKEN is not set in .env")
-
-    bot = Bot(token=token)
+    bot = Bot(token=BOT_TOKEN)
 
     dp = Dispatcher()
     dp.include_router(start_router)
