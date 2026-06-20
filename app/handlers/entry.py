@@ -70,11 +70,17 @@ async def process_age(message: Message, state: FSMContext) -> None:
 async def process_microphone_callback(query: CallbackQuery, state: FSMContext) -> None:
     value: str = "Есть" if query.data == "mic_yes" else "Нет"
 
+    message = query.message
+
+    if not isinstance(message, Message):
+        return
+
+    await message.edit_reply_markup()
+
     await state.update_data(microphone=value)
     await state.set_state(EntryForm.games)
 
-    if query.message:
-        await query.message.answer("Какие игры тебе интересны? (например: CS2, Dota 2)")
+    await message.answer("Какие игры тебе интересны? (например: CS2, Dota 2)")
 
     await query.answer()
 
@@ -90,23 +96,23 @@ async def process_microphone(message: Message, state: FSMContext) -> None:
 
 @router.message(EntryForm.games)
 async def process_games(message: Message, state: FSMContext, bot: Bot) -> None:
-    text: str = (message.text or "").strip()
+    games_text: str = (message.text or "").strip()
 
-    if not text:
+    if not games_text:
         await message.answer("Напиши хотя бы одну игру (например: CS2, Dota 2)")
         return
 
-    if len(text) > 200:
+    if len(games_text) > 200:
         await message.answer(
             "Напиши игры через запятую (например: CS2, Dota 2, Valorant)"
         )
         return
 
-    await state.update_data(games=text)
+    await state.update_data(games=games_text)
 
     data: dict[str, Any] = await state.get_data()
 
-    text: str = (
+    report_text: str = (
         "Новая анкета:\n\n"
         f"Ник: {data['nickname']}\n"
         f"Возраст: {data['age']}\n"
@@ -114,10 +120,16 @@ async def process_games(message: Message, state: FSMContext, bot: Bot) -> None:
         f"Игры: {data['games']}"
     )
 
-    await message.answer(text)
+    await message.answer(report_text)
+
+    user = message.from_user
+    if user is None:
+        return
 
     await bot.send_message(
-        chat_id=ADMIN_CHAT_ID, text=text, reply_markup=moderation_kb()
+        chat_id=ADMIN_CHAT_ID,
+        text=report_text,
+        reply_markup=moderation_kb(user.id),
     )
 
     await state.clear()
