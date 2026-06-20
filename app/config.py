@@ -13,3 +13,4 @@ def get_env(name: str) -> str:
 
 BOT_TOKEN: str = get_env("BOT_TOKEN")
 ADMIN_CHAT_ID: int = int(get_env("ADMIN_CHAT_ID"))
+CHAT_INVITE_LINK: str = get_env("CHAT_INVITE_LINK")

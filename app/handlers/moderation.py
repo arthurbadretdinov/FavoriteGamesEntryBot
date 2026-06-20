@@ -1,6 +1,8 @@
 from aiogram import Router, F, Bot
 from aiogram.types import CallbackQuery, Message
 
+from app.keyboards.invite import invite_kb
+
 router = Router()
 
 
@@ -12,6 +14,11 @@ async def approve(query: CallbackQuery, bot: Bot):
     user_id = int(query.data.split(":")[1])
 
     await bot.send_message(user_id, "✅ Твоя заявка принята!")
+    await bot.send_message(
+        user_id,
+        "🎉 Твоя заявка принята!\nДобро пожаловать в беседу! 👇",
+        reply_markup=invite_kb(),
+    )
 
     message = query.message
     if not isinstance(message, Message):
